@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import saleRoutes from './routes/saleRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import repairRoutes from './routes/repairRoutes.js';
@@ -30,12 +32,22 @@ app.use('/api/products', productRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/search', searchRoutes);
 
-app.use((_req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'הנתיב המבוקש לא נמצא',
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distPath = path.join(__dirname, '../dist');
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(distPath));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
   });
-});
+} else {
+  app.use((_req, res) => {
+    res.status(404).json({
+      success: false,
+      message: 'הנתיב המבוקש לא נמצא',
+    });
+  });
+}
 
 app.use((err, _req, res, _next) => {
   console.error('שגיאת שרת:', err);
