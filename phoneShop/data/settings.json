@@ -1,0 +1,28 @@
+{
+  "storeName": "סלולריום",
+  "storePhone": "09-866-9098",
+  "storeEmail": "info@phonestore.local",
+  "storeAddress": "דרך הכפר 125, כפר ויתקין",
+  "taxRate": 0.18,
+  "defaultWarrantyMonths": 12,
+  "currency": "ILS",
+  "lowStockDefaultThreshold": 5,
+  "repairDefaultLaborCharge": 50,
+  "receiptFooter": "תודה שקניתם אצלנו!",
+  "defaultPosCustomerId": null,
+  "smtp": {
+    "enabled": false,
+    "host": "",
+    "port": 587,
+    "secure": false,
+    "user": "",
+    "pass": "",
+    "fromName": "סלולריום",
+    "fromEmail": "",
+    "notifyRepairStatus": true,
+    "notifyRepairCreated": true,
+    "notifyPhonePurchase": true,
+    "notifyRepairDelivered": true
+  },
+  "updatedAt": "2026-06-15T09:48:00.652Z"
+}
