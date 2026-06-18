@@ -72,13 +72,13 @@ export default function TopNav({
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-outline-variant/80 shadow-sm bg-surface/95 backdrop-blur-md shrink-0">
+    <header className="sticky top-0 z-40 border-b border-outline-variant/80 shadow-sm bg-surface/95 backdrop-blur-md shrink-0 safe-top">
       <div className="relative flex items-center justify-between gap-2 px-4 md:px-8 py-3 md:py-4">
         <div className="flex items-center gap-2 min-w-0 z-10">
           <div className="md:hidden w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-on-primary shrink-0">
             <Icon name="smartphone" className="text-[18px]" />
           </div>
-          <h2 className="font-headline-md text-base sm:text-lg md:text-headline-md font-bold text-on-surface truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">
+          <h2 className="font-headline-md text-base sm:text-lg md:text-headline-md font-bold text-on-surface truncate max-w-[min(50vw,180px)] sm:max-w-none">
             {title}
           </h2>
         </div>

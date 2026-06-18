@@ -6,6 +6,8 @@ import RepairLabPage from './pages/RepairLabPage';
 import InventoryPage from './pages/InventoryPage';
 import CRMPage from './pages/CRMPage';
 import SettingsPage from './pages/SettingsPage';
+import ReportsPage from './pages/ReportsPage';
+import DesktopOnlyRoute from './components/layout/DesktopOnlyRoute';
 
 export default function App() {
   return (
@@ -13,7 +15,8 @@ export default function App() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
-          <Route path="pos" element={<POSPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="pos" element={<DesktopOnlyRoute><POSPage /></DesktopOnlyRoute>} />
           <Route path="repairs" element={<RepairLabPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="crm" element={<CRMPage />} />

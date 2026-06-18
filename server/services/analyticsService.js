@@ -1,5 +1,8 @@
 import { getAllTransactions } from '../storage/repositories/transactionRepository.js';
 import { getExpensesInRange, sumExpensesInRange } from '../storage/repositories/expenseRepository.js';
+import { getAllProducts } from '../storage/repositories/productRepository.js';
+import { readCollection } from '../storage/jsonStore.js';
+import { REPAIR_STATUS } from '../constants/index.js';
 
 /**
  * שירות אנליטיקה – קורא מקבצי JSON, מייצר נתונים ל-Chart.js / Recharts
@@ -367,6 +370,234 @@ export async function getProfitBreakdown(startDate, endDate) {
       profit: Number(v.profit.toFixed(2)),
       count: v.count,
     })),
+  };
+}
+
+const ITEM_TYPE_LABELS = {
+  phone: 'טלפון',
+  accessory: 'אביזר',
+  repair: 'תיקון',
+};
+
+function itemGroupKey(item) {
+  return `${item.itemType}:${item.referenceId || item.name}`;
+}
+
+export async function getProductSalesReport(startDate, endDate, sortBy = 'quantity') {
+  const [transactions, products] = await Promise.all([
+    getAllTransactions({ startDate, endDate }),
+    getAllProducts(),
+  ]);
+
+  const productMap = new Map(products.map((p) => [p.id, p]));
+  const soldMap = new Map();
+
+  transactions.forEach((txn) => {
+    txn.items.forEach((item) => {
+      const key = itemGroupKey(item);
+      if (!soldMap.has(key)) {
+        const product = item.referenceId ? productMap.get(item.referenceId) : null;
+        soldMap.set(key, {
+          referenceId: item.referenceId || null,
+          name: item.name,
+          itemType: item.itemType,
+          itemTypeLabel: ITEM_TYPE_LABELS[item.itemType] || item.itemType,
+          identifier: product?.imei || product?.sku || product?.barcode || item.imei || item.barcode || null,
+          category: product?.category || product?.make || null,
+          quantitySold: 0,
+          revenue: 0,
+          cost: 0,
+          profit: 0,
+          transactionIds: new Set(),
+          currentStock: product?.productType === 'accessory' ? product?.stockQuantity ?? null : null,
+          stockStatus: product?.productType === 'phone' ? product?.stockStatus ?? null : null,
+          inInventory: Boolean(product),
+          catalogSellPrice: product?.sellPrice ?? null,
+          catalogBuyPrice: product?.buyPrice ?? null,
+        });
+      }
+
+      const row = soldMap.get(key);
+      row.quantitySold += item.quantity || 1;
+      row.revenue += item.lineRevenue || 0;
+      row.cost += item.lineCost || 0;
+      row.profit += item.lineProfit || 0;
+      row.transactionIds.add(txn.id);
+    });
+  });
+
+  const items = [...soldMap.values()].map((row) => {
+    const revenue = Number(row.revenue.toFixed(2));
+    const cost = Number(row.cost.toFixed(2));
+    const profit = Number(row.profit.toFixed(2));
+    const qty = row.quantitySold;
+    return {
+      referenceId: row.referenceId,
+      name: row.name,
+      itemType: row.itemType,
+      itemTypeLabel: row.itemTypeLabel,
+      identifier: row.identifier,
+      category: row.category,
+      quantitySold: qty,
+      revenue,
+      cost,
+      profit,
+      profitMarginPercent: revenue > 0 ? Number(((profit / revenue) * 100).toFixed(1)) : 0,
+      avgUnitPrice: qty > 0 ? Number((revenue / qty).toFixed(2)) : 0,
+      avgUnitCost: qty > 0 ? Number((cost / qty).toFixed(2)) : 0,
+      saleCount: row.transactionIds.size,
+      currentStock: row.currentStock,
+      stockStatus: row.stockStatus,
+      inInventory: row.inInventory,
+      catalogSellPrice: row.catalogSellPrice,
+      catalogBuyPrice: row.catalogBuyPrice,
+    };
+  });
+
+  const sortFns = {
+    quantity: (a, b) => b.quantitySold - a.quantitySold || b.profit - a.profit,
+    revenue: (a, b) => b.revenue - a.revenue || b.quantitySold - a.quantitySold,
+    profit: (a, b) => b.profit - a.profit || b.quantitySold - a.quantitySold,
+  };
+  items.sort(sortFns[sortBy] || sortFns.quantity);
+  items.forEach((item, i) => {
+    item.rank = i + 1;
+  });
+
+  const grossRevenue = items.reduce((s, i) => s + i.revenue, 0);
+  const totalCost = items.reduce((s, i) => s + i.cost, 0);
+  const totalProfit = items.reduce((s, i) => s + i.profit, 0);
+  const totalQuantitySold = items.reduce((s, i) => s + i.quantitySold, 0);
+
+  const soldProductIds = new Set(
+    items.filter((i) => i.referenceId && i.itemType !== 'repair').map((i) => i.referenceId)
+  );
+  const unsoldInInventory = products
+    .filter((p) => p.isActive && !soldProductIds.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      itemType: p.productType,
+      itemTypeLabel: ITEM_TYPE_LABELS[p.productType] || p.productType,
+      identifier: p.imei || p.sku || p.barcode || null,
+      category: p.category || p.make || null,
+      currentStock: p.productType === 'accessory' ? p.stockQuantity : null,
+      stockStatus: p.productType === 'phone' ? p.stockStatus : null,
+      catalogSellPrice: p.sellPrice,
+      catalogBuyPrice: p.buyPrice,
+    }));
+
+  return {
+    period: { from: startDate, to: endDate },
+    summary: {
+      grossRevenue: Number(grossRevenue.toFixed(2)),
+      totalCost: Number(totalCost.toFixed(2)),
+      totalProfit: Number(totalProfit.toFixed(2)),
+      profitMarginPercent:
+        grossRevenue > 0 ? Number(((totalProfit / grossRevenue) * 100).toFixed(1)) : 0,
+      totalQuantitySold,
+      uniqueItemsSold: items.length,
+      transactionCount: transactions.length,
+    },
+    items,
+    unsoldInInventory,
+  };
+}
+
+export async function getYearEndInventoryReport(asOfDate = new Date()) {
+  const [products, repairs, customers] = await Promise.all([
+    getAllProducts(),
+    readCollection('repairs'),
+    readCollection('customers'),
+  ]);
+
+  const customerMap = new Map(customers.map((c) => [c.id, c]));
+  const activeProducts = products.filter((p) => p.isActive !== false);
+
+  const phones = activeProducts
+    .filter((p) => p.productType === 'phone' && p.stockStatus === 'במלאי')
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      make: p.make,
+      model: p.model,
+      imei: p.imei,
+      supplier: p.supplier || '',
+      stockStatus: p.stockStatus,
+      buyPrice: p.buyPrice,
+      sellPrice: p.sellPrice,
+      profit: Number((p.sellPrice - p.buyPrice).toFixed(2)),
+      stockEnteredAt: p.stockEnteredAt || p.createdAt,
+    }))
+    .sort((a, b) => new Date(b.stockEnteredAt) - new Date(a.stockEnteredAt));
+
+  const accessories = activeProducts
+    .filter((p) => p.productType === 'accessory' && (p.stockQuantity ?? 0) > 0)
+    .map((p) => {
+      const qty = p.stockQuantity ?? 0;
+      return {
+        id: p.id,
+        name: p.name,
+        sku: p.sku || '',
+        barcode: p.barcode || '',
+        category: p.category || '',
+        stockQuantity: qty,
+        buyPrice: p.buyPrice,
+        sellPrice: p.sellPrice,
+        lineBuyValue: Number((p.buyPrice * qty).toFixed(2)),
+        lineSellValue: Number((p.sellPrice * qty).toFixed(2)),
+        lineProfit: Number(((p.sellPrice - p.buyPrice) * qty).toFixed(2)),
+      };
+    })
+    .sort((a, b) => a.category.localeCompare(b.category, 'he') || a.name.localeCompare(b.name, 'he'));
+
+  const openRepairs = repairs
+    .filter((r) => r.status !== REPAIR_STATUS.DELIVERED && r.status !== REPAIR_STATUS.CANCELLED)
+    .map((r) => {
+      const customer = customerMap.get(r.customer);
+      return {
+        id: r.id,
+        ticketNumber: r.ticketNumber,
+        deviceModel: r.deviceModel,
+        customerName: customer?.fullName || '—',
+        status: r.status,
+        finalCustomerPrice: r.finalCustomerPrice,
+        partCost: r.partCost,
+        receivedAt: r.receivedAt,
+      };
+    })
+    .sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt));
+
+  const phoneBuyValue = phones.reduce((s, p) => s + p.buyPrice, 0);
+  const phoneSellValue = phones.reduce((s, p) => s + p.sellPrice, 0);
+  const accessoryBuyValue = accessories.reduce((s, p) => s + p.lineBuyValue, 0);
+  const accessorySellValue = accessories.reduce((s, p) => s + p.lineSellValue, 0);
+  const accessoryUnits = accessories.reduce((s, p) => s + p.stockQuantity, 0);
+
+  return {
+    asOfDate: asOfDate.toISOString(),
+    year: asOfDate.getFullYear(),
+    summary: {
+      phoneCount: phones.length,
+      phoneBuyValue: Number(phoneBuyValue.toFixed(2)),
+      phoneSellValue: Number(phoneSellValue.toFixed(2)),
+      phonePotentialProfit: Number((phoneSellValue - phoneBuyValue).toFixed(2)),
+      accessorySkuCount: accessories.length,
+      accessoryUnits,
+      accessoryBuyValue: Number(accessoryBuyValue.toFixed(2)),
+      accessorySellValue: Number(accessorySellValue.toFixed(2)),
+      accessoryPotentialProfit: Number((accessorySellValue - accessoryBuyValue).toFixed(2)),
+      totalBuyValue: Number((phoneBuyValue + accessoryBuyValue).toFixed(2)),
+      totalSellValue: Number((phoneSellValue + accessorySellValue).toFixed(2)),
+      totalPotentialProfit: Number(
+        (phoneSellValue + accessorySellValue - phoneBuyValue - accessoryBuyValue).toFixed(2)
+      ),
+      openRepairsCount: openRepairs.length,
+      readyForPickupCount: openRepairs.filter((r) => r.status === REPAIR_STATUS.FIXED).length,
+    },
+    phones,
+    accessories,
+    openRepairs,
   };
 }
 

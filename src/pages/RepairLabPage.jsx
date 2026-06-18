@@ -193,7 +193,7 @@ export default function RepairLabPage() {
         </button>
       </TopNav>
 
-      <main className="flex-1 flex flex-col overflow-hidden p-3 md:p-8 min-h-0 pb-20 md:pb-8">
+      <main className="page-scroll-main flex flex-col md:overflow-hidden md:p-8">
         <div className="sm:hidden relative mb-3 shrink-0">
           <Icon name="search" className="absolute start-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]" />
           <input
@@ -207,7 +207,7 @@ export default function RepairLabPage() {
         {loading ? (
           <div className="flex items-center justify-center flex-1 text-secondary">טוען תיקונים...</div>
         ) : (
-          <div className="flex flex-1 gap-3 md:gap-lg min-w-0 overflow-x-auto overflow-y-hidden scrollbar-hide pb-1">
+          <div className="flex flex-1 gap-3 md:gap-lg min-w-0 overflow-x-auto overflow-y-hidden scrollbar-hide pb-1 -mx-1 px-1">
             {REPAIR_COLUMNS.map((col, colIdx) => {
               const cards = filtered.filter((r) => r.status === col.key);
               const highlighted = colIdx === 1 || colIdx === 2;
@@ -215,7 +215,7 @@ export default function RepairLabPage() {
               return (
                 <section
                   key={col.key}
-                  className={`flex flex-col w-[280px] sm:w-[320px] h-full flex-shrink-0 ${
+                  className={`flex flex-col w-[min(85vw,280px)] sm:w-[320px] h-full flex-shrink-0 ${
                     highlighted ? 'bg-surface-container/30 rounded-xl p-sm border border-transparent' : ''
                   }`}
                 >

@@ -43,7 +43,9 @@ export async function initStorage() {
     }
   }
 
-  console.log(`📁 אחסון JSON פעיל: ${DATA_DIR}`);
+  if (!process.env.START_QUIET) {
+    console.log(`📁 אחסון JSON פעיל: ${DATA_DIR}`);
+  }
 }
 
 export async function readCollection(name) {

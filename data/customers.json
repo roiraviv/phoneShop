@@ -185,7 +185,9 @@
     "purchaseHistory": [
       "1ff7c32a-b28e-4aa8-aff6-c1ce88965e9f"
     ],
-    "repairHistory": [],
+    "repairHistory": [
+      "ac1508aa-99d7-4998-9203-def2aa460ca3"
+    ],
     "warranties": [
       {
         "id": "297b1131-02cf-411e-a8c8-52b3c64732f6",
@@ -210,6 +212,6 @@
     "address": "התבור 7",
     "notes": "",
     "createdAt": "2026-06-15T16:03:54.966Z",
-    "updatedAt": "2026-06-15T16:10:08.861Z"
+    "updatedAt": "2026-06-18T17:00:12.508Z"
   }
 ]

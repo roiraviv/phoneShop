@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import TopNav from '../components/layout/TopNav';
 import Icon from '../components/ui/Icon';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { fetchDashboard, fetchSales } from '../api/analytics';
+import { fetchRepairs } from '../api/repairs';
 import { globalSearch } from '../api/search';
 import { formatCurrency, formatDate } from '../utils/format';
 import { exportTransactionsCsv, printDashboardReport } from '../utils/reportExport';
@@ -119,6 +121,8 @@ function BreakdownChart({ breakdown }) {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMobile = useIsMobile();
   const [dashboard, setDashboard] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [allTransactions, setAllTransactions] = useState([]);
@@ -127,6 +131,15 @@ export default function DashboardPage() {
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [readyRepairs, setReadyRepairs] = useState([]);
+  const [posBlockedNotice, setPosBlockedNotice] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.desktopOnly === 'pos') {
+      setPosBlockedNotice(true);
+      navigate('.', { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
 
   useEffect(() => {
     Promise.all([fetchDashboard(), fetchSales({ limit: 5 }), fetchSales({ limit: 100 })])
@@ -137,6 +150,10 @@ export default function DashboardPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    fetchRepairs('תוקן')
+      .then((res) => setReadyRepairs(res.data || []))
+      .catch(console.error);
   }, []);
 
   const runSearch = useCallback((q) => {
@@ -202,26 +219,117 @@ export default function DashboardPage() {
       />
       <main className="page-main">
         <div className="max-w-7xl mx-auto space-y-lg">
+          {posBlockedNotice && (
+            <div className="bg-secondary-container/40 border border-outline-variant rounded-xl p-md flex items-start gap-sm">
+              <Icon name="computer" className="text-primary mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-label-lg text-on-surface">הקופה זמינה במחשב בלבד</p>
+                <p className="font-body-sm text-secondary mt-xs">מכירות ומסירת תיקונים מתבצעות ממסך הקופה בדסקטופ.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPosBlockedNotice(false)}
+                className="shrink-0 p-1 text-secondary hover:text-on-surface"
+                aria-label="סגור"
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <h2 className="font-headline-md text-headline-md font-bold text-on-surface">סקירה פיננסית</h2>
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto [&_button]:min-h-[44px]">
+              <button
+                type="button"
+                onClick={() => navigate('/reports')}
+                className="flex-1 sm:flex-none px-md py-2 bg-surface-container-lowest border border-outline font-label-lg text-label-lg rounded hover:bg-surface-container-low transition-colors text-center text-sm sm:text-label-lg"
+              >
+                דוח מכירות
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/reports?tab=inventory')}
+                className="flex-1 sm:flex-none px-md py-2 bg-surface-container-lowest border border-outline font-label-lg text-label-lg rounded hover:bg-surface-container-low transition-colors text-center text-sm sm:text-label-lg"
+              >
+                מלאי סוף שנה
+              </button>
               <button
                 type="button"
                 disabled={exporting}
                 onClick={handleExport}
-                className="flex-1 sm:flex-none px-md py-2 bg-surface-container-lowest border border-outline font-label-lg text-label-lg rounded hover:bg-surface-container-low transition-colors disabled:opacity-50 text-center"
+                className="flex-1 sm:flex-none px-md py-2 bg-surface-container-lowest border border-outline font-label-lg text-label-lg rounded hover:bg-surface-container-low transition-colors disabled:opacity-50 text-center text-sm sm:text-label-lg"
               >
                 {exporting ? 'מייצא...' : 'ייצוא CSV'}
               </button>
               <button
                 type="button"
                 onClick={handleGenerateReport}
-                className="flex-1 sm:flex-none px-md py-2 bg-primary text-on-primary font-label-lg text-label-lg rounded hover:bg-primary-container transition-colors shadow-sm text-center"
+                className="flex-1 sm:flex-none px-md py-2 bg-primary text-on-primary font-label-lg text-label-lg rounded hover:bg-primary-container transition-colors shadow-sm text-center text-sm sm:text-label-lg"
               >
                 הפקת דוח
               </button>
             </div>
           </div>
+
+          {readyRepairs.length > 0 && (
+            <div className="bg-surface-container-lowest rounded-xl border border-primary/30 p-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-md">
+                <div className="flex items-center gap-sm">
+                  <Icon name="build_circle" className="text-primary text-[24px]" />
+                  <div>
+                    <h3 className="font-title-sm text-title-sm text-on-surface">תיקונים מוכנים למסירה</h3>
+                    <p className="font-body-sm text-secondary">
+                      {isMobile
+                        ? 'מסירה מתבצעת בקופה במחשב בלבד'
+                        : 'לחץ למעבר לקופה עם התיקון והלקוח — יוסר מהמלאי רק אחרי סיום והדפסת קבלה'}
+                    </p>
+                  </div>
+                </div>
+                <span className="font-label-lg text-primary font-bold">{readyRepairs.length} ממתינים</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-sm">
+                {readyRepairs.map((repair) =>
+                  isMobile ? (
+                    <div
+                      key={repair.id}
+                      className="flex items-center justify-between gap-md p-md bg-surface border border-outline-variant rounded-lg text-start"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-label-lg text-on-surface truncate">{repair.customerName}</p>
+                        <p className="font-body-sm text-secondary truncate">{repair.deviceModel}</p>
+                        <p className="font-data-mono text-[11px] text-secondary mt-xs">{repair.ticketNumber}</p>
+                      </div>
+                      <div className="text-left flex-shrink-0">
+                        <p className="font-data-mono text-primary font-bold">{formatCurrency(repair.finalCustomerPrice)}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      key={repair.id}
+                      type="button"
+                      onClick={() => navigate(`/pos?repair=${repair.id}`)}
+                      className="flex items-center justify-between gap-md p-md bg-surface border border-outline-variant rounded-lg hover:border-primary hover:bg-primary-container/5 transition-all text-start group"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-label-lg text-on-surface truncate group-hover:text-primary">
+                          {repair.customerName}
+                        </p>
+                        <p className="font-body-sm text-secondary truncate">{repair.deviceModel}</p>
+                        <p className="font-data-mono text-[11px] text-secondary mt-xs">{repair.ticketNumber}</p>
+                      </div>
+                      <div className="text-left flex-shrink-0">
+                        <p className="font-data-mono text-primary font-bold">{formatCurrency(repair.finalCustomerPrice)}</p>
+                        <span className="inline-flex items-center gap-1 font-label-md text-primary mt-xs">
+                          <Icon name="point_of_sale" className="text-[16px]" />
+                          מסור
+                        </span>
+                      </div>
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
             <KpiCard
@@ -253,9 +361,9 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
             <div className="bg-surface-container-lowest p-lg rounded border border-outline-variant lg:col-span-2 flex flex-col">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
                 <h3 className="font-title-sm text-title-sm text-on-surface">רווחיות חודשית</h3>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-3 sm:gap-4">
                   <div className="flex items-center gap-2 font-label-md text-label-md text-on-surface-variant">
                     <span className="w-3 h-3 rounded-full bg-primary-container" /> הכנסות
                   </div>

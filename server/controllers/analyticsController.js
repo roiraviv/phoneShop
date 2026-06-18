@@ -5,6 +5,8 @@ import {
   getMonthlyProfitabilityChart,
   getProfitBreakdown,
   getFullDashboard,
+  getProductSalesReport,
+  getYearEndInventoryReport,
 } from '../services/analyticsService.js';
 import { getLowStockAlerts } from '../utils/stockAlerts.js';
 
@@ -139,6 +141,46 @@ export async function getLowStock(req, res) {
       data: alerts,
       count: alerts.length,
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * @route GET /api/analytics/sales-report
+ * @desc דוח מכירות לפי פריט – כמות, הכנסות, רווח, קישור למלאי
+ * query: startDate, endDate (ISO), sortBy = quantity|revenue|profit
+ */
+export async function getSalesReport(req, res) {
+  try {
+    const { startDate, endDate, sortBy = 'quantity' } = req.query;
+
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(new Date().setDate(1));
+    start.setHours(0, 0, 0, 0);
+
+    const end = endDate ? new Date(endDate) : new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const report = await getProductSalesReport(start, end, sortBy);
+
+    res.json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * @route GET /api/analytics/inventory-report
+ * @desc דוח מלאי לסוף שנה / נכון להיום
+ */
+export async function getInventoryReport(req, res) {
+  try {
+    const asOf = req.query.asOf ? new Date(req.query.asOf) : new Date();
+    asOf.setHours(23, 59, 59, 999);
+    const report = await getYearEndInventoryReport(asOf);
+    res.json({ success: true, data: report });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

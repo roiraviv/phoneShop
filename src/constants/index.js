@@ -14,6 +14,7 @@ export const STATUS_TO_COLUMN = {
 
 export const NAV_ITEMS = [
   { path: '/', icon: 'dashboard', label: 'דשבורד' },
+  { path: '/reports', icon: 'assessment', label: 'דוחות' },
   { path: '/pos', icon: 'point_of_sale', label: 'קופה' },
   { path: '/inventory', icon: 'inventory_2', label: 'מלאי' },
   { path: '/repairs', icon: 'build', label: 'תיקונים' },
@@ -22,11 +23,11 @@ export const NAV_ITEMS = [
 ];
 
 export const MOBILE_PRIMARY_NAV = NAV_ITEMS.filter((item) =>
-  ['/', '/pos', '/inventory', '/repairs'].includes(item.path)
+  ['/', '/inventory', '/repairs'].includes(item.path)
 );
 
 export const MOBILE_MORE_NAV = NAV_ITEMS.filter((item) =>
-  ['/crm', '/settings'].includes(item.path)
+  ['/crm', '/settings', '/reports'].includes(item.path)
 );
 
 export const ACCESSORY_CATEGORIES = [

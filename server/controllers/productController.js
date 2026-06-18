@@ -15,8 +15,14 @@ export async function listProducts(req, res) {
     }
 
     if (quickAdd === 'true') {
-      products = products.filter(
-        (p) => p.productType === 'accessory' && p.isActive && p.stockQuantity > 0
+      products = products.filter((p) => {
+        if (!p.isQuickAdd || !p.isActive) return false;
+        if (p.productType === 'accessory') return p.stockQuantity > 0;
+        if (p.productType === 'phone') return p.stockStatus === 'במלאי';
+        return true;
+      });
+      products.sort(
+        (a, b) => (a.quickAddOrder ?? 999) - (b.quickAddOrder ?? 999)
       );
     }
 

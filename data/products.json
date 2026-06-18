@@ -26,7 +26,9 @@
     "lowStockThreshold": 10,
     "isActive": true,
     "createdAt": "2025-06-01T10:00:00.000Z",
-    "updatedAt": "2026-06-16T10:06:48.584Z"
+    "updatedAt": "2026-06-18T16:56:51.676Z",
+    "isQuickAdd": false,
+    "quickAddOrder": null
   },
   {
     "id": "prod-003",
@@ -41,7 +43,9 @@
     "lowStockThreshold": 5,
     "isActive": true,
     "createdAt": "2025-06-01T10:00:00.000Z",
-    "updatedAt": "2026-06-16T10:06:48.584Z"
+    "updatedAt": "2026-06-18T16:56:50.657Z",
+    "isQuickAdd": false,
+    "quickAddOrder": null
   },
   {
     "id": "prod-004",
@@ -56,7 +60,9 @@
     "lowStockThreshold": 8,
     "isActive": true,
     "createdAt": "2025-06-01T10:00:00.000Z",
-    "updatedAt": "2026-06-16T10:06:48.584Z"
+    "updatedAt": "2026-06-18T16:56:53.037Z",
+    "isQuickAdd": false,
+    "quickAddOrder": null
   },
   {
     "id": "prod-005",
@@ -71,7 +77,9 @@
     "lowStockThreshold": 5,
     "isActive": true,
     "createdAt": "2025-06-01T10:00:00.000Z",
-    "updatedAt": "2026-06-16T10:06:48.584Z"
+    "updatedAt": "2026-06-18T16:56:49.343Z",
+    "isQuickAdd": false,
+    "quickAddOrder": null
   },
   {
     "productType": "phone",
@@ -96,8 +104,25 @@
     "sellingPrice": 49,
     "stockQuantity": 5,
     "id": "ad7318c6-b349-453a-a105-ef3816d93d18",
-    "isActive": true,
+    "isActive": false,
     "createdAt": "2026-06-15T09:46:33.852Z",
-    "updatedAt": "2026-06-15T09:46:33.852Z"
+    "updatedAt": "2026-06-18T16:54:23.457Z"
+  },
+  {
+    "productType": "accessory",
+    "name": "כבל טייפ סי",
+    "sku": "C2C-APPLE",
+    "barcode": "456654",
+    "category": "כבל",
+    "buyPrice": 20,
+    "sellPrice": 60,
+    "stockQuantity": 70,
+    "lowStockThreshold": 7,
+    "id": "ee6c98dd-2b53-4f44-a90d-4ac3c5766080",
+    "isActive": true,
+    "createdAt": "2026-06-18T16:52:08.709Z",
+    "updatedAt": "2026-06-18T16:56:52.383Z",
+    "isQuickAdd": false,
+    "quickAddOrder": null
   }
 ]

@@ -40,6 +40,7 @@ export async function getCustomer(req, res) {
         date: t.createdAt,
         total: t.total,
         items: t.items.map((i) => i.name).join(', '),
+        transactionNumber: t.transactionNumber,
         type: 'purchase',
       }));
 

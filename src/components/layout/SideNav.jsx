@@ -11,7 +11,7 @@ export default function SideNav() {
             <Icon name="smartphone" className="text-[22px]" />
           </div>
           <div>
-            <h1 className="font-headline-md text-headline-md font-bold text-primary leading-tight">PhoneStore</h1>
+            <h1 className="font-headline-md text-headline-md font-bold text-primary leading-tight">סלולריום</h1>
             <p className="font-body-sm text-body-sm text-secondary">ניהול חנות סלולר</p>
           </div>
         </div>
@@ -54,7 +54,7 @@ export default function SideNav() {
             PS
           </div>
           <div>
-            <p className="font-title-sm text-title-sm">PhoneStore Pro</p>
+            <p className="font-title-sm text-title-sm">סלולריום</p>
             <p className="font-body-sm text-body-sm text-secondary">מערכת POS</p>
           </div>
         </div>

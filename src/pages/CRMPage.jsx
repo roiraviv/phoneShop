@@ -3,14 +3,18 @@ import TopNav from '../components/layout/TopNav';
 import Icon from '../components/ui/Icon';
 import Modal from '../components/ui/Modal';
 import CustomerForm from '../components/crm/CustomerForm';
+import ReceiptSlipPreview from '../components/receipt/ReceiptSlipPreview';
 import {
   fetchCustomers,
   fetchCustomer,
   createCustomer,
   updateCustomer,
 } from '../api/customers';
+import { fetchSaleById } from '../api/sales';
+import { fetchSettings } from '../api/settings';
 import { EMPTY_CUSTOMER_FORM, CUSTOMER_TYPES } from '../constants';
 import { formatCurrency, formatDate, getInitials } from '../utils/format';
+import { printReceiptSlip } from '../utils/receiptPrint';
 
 function WarrantyCard({ warranty }) {
   const end = new Date(warranty.endDate);
@@ -54,6 +58,10 @@ export default function CRMPage() {
   const [form, setForm] = useState({ ...EMPTY_CUSTOMER_FORM });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [receiptTransaction, setReceiptTransaction] = useState(null);
+  const [receiptSettings, setReceiptSettings] = useState(null);
 
   const loadList = useCallback(() => {
     setLoading(true);
@@ -138,6 +146,37 @@ export default function CRMPage() {
     }
   };
 
+  const openPurchaseReceipt = async (item) => {
+    if (item.type !== 'purchase') return;
+    setReceiptOpen(true);
+    setReceiptLoading(true);
+    setReceiptTransaction(null);
+    try {
+      const [saleRes, settingsRes] = await Promise.all([
+        fetchSaleById(item.id),
+        receiptSettings ? Promise.resolve({ data: receiptSettings }) : fetchSettings(),
+      ]);
+      setReceiptTransaction(saleRes.data);
+      if (!receiptSettings) setReceiptSettings(settingsRes.data);
+    } catch (err) {
+      console.error(err);
+      setReceiptOpen(false);
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
+  const handlePrintReceipt = () => {
+    if (!receiptTransaction) return;
+    printReceiptSlip({
+      transaction: receiptTransaction,
+      settings: receiptSettings,
+      customer: selected,
+      showCustomerDetails: true,
+      taxRate: receiptSettings?.taxRate ?? 0.18,
+    });
+  };
+
   const history = selected?.history || [];
   const filteredHistory = history.filter((h) => historyTab === 'all' || h.type === historyTab);
   const activeWarranties = (selected?.warranties || []).filter(
@@ -154,8 +193,8 @@ export default function CRMPage() {
         </button>
       </TopNav>
 
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden p-3 md:p-4 gap-3 md:gap-4 min-h-0 pb-20 md:pb-4">
-        <section className="w-full md:w-[320px] lg:w-[360px] flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden flex-shrink-0 max-h-[42vh] md:max-h-none">
+      <main className="page-scroll-main flex flex-col md:flex-row md:overflow-hidden gap-3 md:gap-4">
+        <section className="w-full md:w-[320px] lg:w-[360px] flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden flex-shrink-0 md:max-h-none max-h-[38vh] md:h-auto">
           <div className="p-3 md:p-md border-b border-outline-variant">
             <div className="relative">
               <Icon name="search" className="absolute start-3 top-1/2 -translate-y-1/2 text-secondary text-[20px]" />
@@ -201,22 +240,22 @@ export default function CRMPage() {
           </div>
         </section>
 
-        <section className="flex-1 flex flex-col gap-3 md:gap-gutter overflow-hidden min-h-0">
+        <section className="flex-1 flex flex-col gap-3 md:gap-gutter min-h-0 md:overflow-hidden">
           {detailLoading || !selected ? (
             <div className="flex-1 flex items-center justify-center text-secondary">
               {detailLoading ? 'טוען פרופיל...' : 'בחר לקוח'}
             </div>
           ) : (
             <>
-              <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-lg">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-lg">
-                    <div className="w-16 h-16 rounded-full bg-secondary-container flex items-center justify-center font-headline-md text-xl">
+              <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 md:p-lg">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                  <div className="flex items-center gap-md sm:gap-lg min-w-0">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-secondary-container flex items-center justify-center font-headline-md text-xl shrink-0">
                       {getInitials(selected.fullName)}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-sm">
-                        <h3 className="font-headline-md text-on-surface">{selected.fullName}</h3>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-sm">
+                        <h3 className="font-headline-md text-on-surface truncate">{selected.fullName}</h3>
                         <span className="font-label-md px-sm py-xs rounded-full bg-secondary-container text-on-secondary-container">
                           {typeLabel}
                         </span>
@@ -225,7 +264,7 @@ export default function CRMPage() {
                       {selected.phone2 && <p className="font-data-mono text-secondary text-sm">נוסף: {selected.phone2}</p>}
                     </div>
                   </div>
-                  <button type="button" onClick={openEdit} className="px-md py-sm border border-outline-variant rounded-lg font-label-md text-primary hover:bg-secondary-container flex items-center gap-xs">
+                  <button type="button" onClick={openEdit} className="w-full sm:w-auto px-md py-sm border border-outline-variant rounded-lg font-label-md text-primary hover:bg-secondary-container flex items-center justify-center gap-xs min-h-[44px] shrink-0">
                     <Icon name="edit" className="text-[16px]" />
                     עריכה
                   </button>
@@ -266,8 +305,8 @@ export default function CRMPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-gutter flex-1 overflow-hidden min-h-0">
-                <div className="bg-surface-container-lowest rounded-xl border border-outline-variant flex flex-col overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-gutter flex-1 md:overflow-hidden min-h-0">
+                <div className="bg-surface-container-lowest rounded-xl border border-outline-variant flex flex-col overflow-hidden min-h-[200px] max-h-[50vh] lg:max-h-none">
                   <div className="p-md border-b border-outline-variant flex items-center gap-sm">
                     <Icon name="verified_user" className="text-primary" />
                     <h4 className="font-title-sm text-on-surface">אחריות (IMEI)</h4>
@@ -283,7 +322,7 @@ export default function CRMPage() {
                   </div>
                 </div>
 
-                <div className="bg-surface-container-lowest rounded-xl border border-outline-variant flex flex-col overflow-hidden">
+                <div className="bg-surface-container-lowest rounded-xl border border-outline-variant flex flex-col overflow-hidden min-h-[200px] max-h-[50vh] lg:max-h-none">
                   <div className="p-md border-b border-outline-variant">
                     <div className="flex items-center gap-sm mb-md">
                       <Icon name="history" className="text-secondary" />
@@ -313,18 +352,45 @@ export default function CRMPage() {
                       <p className="text-secondary text-center py-8">אין היסטוריה</p>
                     ) : (
                       filteredHistory.map((item) => (
-                        <div key={`${item.type}-${item.id}`} className="bg-surface rounded-lg border border-outline-variant p-md flex justify-between items-center">
-                          <div>
-                            <div className="flex items-center gap-sm">
-                              <Icon name={item.type === 'repair' ? 'build' : 'shopping_bag'} className="text-[16px] text-secondary" />
-                              <span className="font-label-lg text-on-surface">{item.items}</span>
-                            </div>
-                            <p className="font-body-sm text-secondary mt-xs">
-                              {formatDate(item.date)}
-                              {item.ticketNumber && ` • ${item.ticketNumber}`}
-                            </p>
+                        <div
+                          key={`${item.type}-${item.id}`}
+                          className={`bg-surface rounded-lg border border-outline-variant p-md flex justify-between items-center ${
+                            item.type === 'purchase' ? 'hover:border-primary/40 hover:bg-primary-container/5 transition-colors' : ''
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            {item.type === 'purchase' ? (
+                              <button
+                                type="button"
+                                onClick={() => openPurchaseReceipt(item)}
+                                className="text-start w-full group"
+                              >
+                                <div className="flex items-center gap-sm">
+                                  <Icon name="shopping_bag" className="text-[16px] text-primary" />
+                                  <span className="font-label-lg text-on-surface group-hover:text-primary transition-colors truncate">
+                                    {item.items}
+                                  </span>
+                                  <Icon name="receipt_long" className="text-[16px] text-secondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                                </div>
+                                <p className="font-body-sm text-secondary mt-xs">
+                                  {formatDate(item.date)}
+                                  {item.transactionNumber && ` • ${item.transactionNumber}`}
+                                </p>
+                              </button>
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-sm">
+                                  <Icon name="build" className="text-[16px] text-secondary" />
+                                  <span className="font-label-lg text-on-surface">{item.items}</span>
+                                </div>
+                                <p className="font-body-sm text-secondary mt-xs">
+                                  {formatDate(item.date)}
+                                  {item.ticketNumber && ` • ${item.ticketNumber}`}
+                                </p>
+                              </>
+                            )}
                           </div>
-                          <span className="font-data-mono text-on-surface">{formatCurrency(item.total)}</span>
+                          <span className="font-data-mono text-on-surface flex-shrink-0 mr-md">{formatCurrency(item.total)}</span>
                         </div>
                       ))
                     )}
@@ -347,6 +413,44 @@ export default function CRMPage() {
             {saving ? 'שומר...' : 'שמור'}
           </button>
         </div>
+      </Modal>
+
+      <Modal
+        open={receiptOpen}
+        onClose={() => setReceiptOpen(false)}
+        title={receiptTransaction?.transactionNumber ? `קבלה ${receiptTransaction.transactionNumber}` : 'קבלה'}
+      >
+        {receiptLoading ? (
+          <p className="text-center text-secondary py-12">טוען קבלה...</p>
+        ) : receiptTransaction ? (
+          <div className="space-y-lg">
+            <ReceiptSlipPreview
+              transaction={receiptTransaction}
+              settings={receiptSettings}
+              customer={selected}
+              taxRate={receiptSettings?.taxRate ?? 0.18}
+            />
+            <div className="flex gap-sm justify-end">
+              <button
+                type="button"
+                onClick={() => setReceiptOpen(false)}
+                className="px-md py-sm border border-outline-variant rounded-lg font-label-lg text-secondary"
+              >
+                סגור
+              </button>
+              <button
+                type="button"
+                onClick={handlePrintReceipt}
+                className="px-md py-sm bg-primary text-on-primary rounded-lg font-label-lg flex items-center gap-xs"
+              >
+                <Icon name="print" className="text-[18px]" />
+                הדפס קבלה
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-center text-secondary py-12">לא נמצאה עסקה</p>
+        )}
       </Modal>
     </div>
   );

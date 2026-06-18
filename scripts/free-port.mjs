@@ -18,7 +18,9 @@ function freePortWindows(targetPort) {
     for (const pid of pids) {
       try {
         execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
-        console.log(`🔓 שוחרר פורט ${targetPort} (PID ${pid})`);
+        if (!process.env.START_QUIET) {
+          console.log(`🔓 שוחרר פורט ${targetPort} (PID ${pid})`);
+        }
       } catch {
         // process may have already exited
       }

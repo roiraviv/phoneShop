@@ -7,7 +7,7 @@ export const DEFAULT_SMTP = {
   secure: false,
   user: '',
   pass: '',
-  fromName: 'PhoneStore Pro',
+  fromName: 'סלולריום',
   fromEmail: '',
   notifyRepairStatus: true,
   notifyRepairCreated: true,

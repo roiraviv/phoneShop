@@ -10,7 +10,7 @@ const DEFAULT_SMTP = {
   secure: false,
   user: '',
   pass: '',
-  fromName: 'PhoneStore Pro',
+  fromName: 'סלולריום',
   fromEmail: '',
   notifyRepairStatus: true,
   notifyRepairCreated: true,
@@ -133,10 +133,11 @@ export default function SettingsPage() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="bg-primary text-on-primary font-label-lg px-md py-sm rounded-lg hover:opacity-90 flex items-center gap-xs disabled:opacity-50"
+          className="bg-primary text-on-primary font-label-lg px-2 sm:px-md py-sm rounded-lg hover:opacity-90 flex items-center gap-xs disabled:opacity-50 min-h-[44px]"
         >
           <Icon name="save" className="text-[18px]" />
-          {saving ? 'שומר...' : 'שמור הגדרות'}
+          <span className="hidden sm:inline">{saving ? 'שומר...' : 'שמור הגדרות'}</span>
+          <span className="sm:hidden">{saving ? '...' : 'שמור'}</span>
         </button>
       </TopNav>
 

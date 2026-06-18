@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import TopNav from '../components/layout/TopNav';
 import Icon from '../components/ui/Icon';
 import { scanProduct, createSale, previewSale } from '../api/sales';
 import { fetchProducts } from '../api/products';
 import { fetchCustomers, fetchCustomer } from '../api/customers';
-import { fetchRepairs } from '../api/repairs';
+import { fetchRepairs, fetchRepair } from '../api/repairs';
 import { fetchSettings } from '../api/settings';
 import { DEFAULT_POS_CUSTOMER } from '../constants';
 import { formatCurrency, formatDate, getInitials } from '../utils/format';
@@ -13,6 +14,8 @@ import { printReceiptSlip } from '../utils/receiptPrint';
 const REPAIR_READY_STATUS = 'תוקן';
 
 export default function POSPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const preloadedRepairRef = useRef(null);
   const [settings, setSettings] = useState(null);
   const [taxRate, setTaxRate] = useState(0.18);
   const [cart, setCart] = useState([]);
@@ -37,7 +40,7 @@ export default function POSPage() {
 
   useEffect(() => {
     fetchProducts({ quickAdd: 'true' })
-      .then((res) => setQuickProducts(res.data.slice(0, 4)))
+      .then((res) => setQuickProducts(res.data))
       .catch(console.error);
     fetchSettings()
       .then(async (res) => {
@@ -126,6 +129,43 @@ export default function POSPage() {
       ];
     });
   };
+
+  const loadRepairCustomer = async (customerId) => {
+    if (!customerId) return;
+    try {
+      const custRes = await fetchCustomer(customerId);
+      setSelectedCustomer(custRes.data);
+      setIsExplicitCustomer(true);
+      setCustomerHistory(custRes.data.history || []);
+      setCustomerSearch(custRes.data.fullName || '');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const preloadRepairFromQuery = useCallback(async (repairId) => {
+    if (!repairId || preloadedRepairRef.current === repairId) return;
+    preloadedRepairRef.current = repairId;
+    setError('');
+    try {
+      const res = await fetchRepair(repairId);
+      const repair = res.data;
+      if (repair.status !== REPAIR_READY_STATUS) {
+        setError(`תיקון ${repair.ticketNumber} אינו מוכן לאיסוף`);
+        return;
+      }
+      addRepairToCart(repair);
+      await loadRepairCustomer(repair.customer);
+      setSearchParams({}, { replace: true });
+    } catch (err) {
+      setError(err.message || 'לא ניתן לטעון את התיקון');
+    }
+  }, [setSearchParams]);
+
+  useEffect(() => {
+    const repairId = searchParams.get('repair');
+    if (repairId) preloadRepairFromQuery(repairId);
+  }, [searchParams, preloadRepairFromQuery]);
 
   const handleScan = async (code) => {
     if (!code.trim()) return;
@@ -224,15 +264,15 @@ export default function POSPage() {
   return (
     <div className="page-shell">
       <TopNav title="קופה – חנות סלולר" />
-      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden p-3 md:p-4 gap-3 md:gap-4 min-h-0 pb-20 md:pb-4">
-        <section className="flex-1 flex flex-col gap-gutter bg-surface-container-low rounded-xl border border-outline-variant overflow-hidden">
-          <div className="p-lg bg-surface border-b border-outline-variant">
+      <main className="page-scroll-main flex flex-col lg:flex-row lg:overflow-hidden gap-3 md:gap-4">
+        <section className="flex-1 flex flex-col gap-gutter bg-surface-container-low rounded-xl border border-outline-variant overflow-hidden min-h-0">
+          <div className="p-3 md:p-lg bg-surface border-b border-outline-variant">
             <div className="relative">
               <Icon name="barcode_scanner" className="absolute left-md top-1/2 -translate-y-1/2 text-primary" />
               <input
                 ref={scanRef}
                 autoFocus
-                className="w-full pl-xl pr-28 py-md font-data-mono text-data-mono rounded-lg border-2 border-outline-variant focus:border-primary focus:ring-0 bg-surface-container-lowest shadow-sm placeholder:font-body-md placeholder:text-secondary h-[56px]"
+                className="w-full pl-xl pr-[4.5rem] sm:pr-28 py-md font-data-mono text-sm sm:text-data-mono rounded-lg border-2 border-outline-variant focus:border-primary focus:ring-0 bg-surface-container-lowest shadow-sm placeholder:font-body-md placeholder:text-secondary h-12 sm:h-[56px]"
                 placeholder="סרוק ברקוד / IMEI / מוצר..."
                 type="text"
                 value={scanCode}
@@ -241,7 +281,7 @@ export default function POSPage() {
               />
               <button
                 type="button"
-                className="absolute right-md top-1/2 -translate-y-1/2 px-md py-sm bg-primary-container text-on-primary-container rounded font-label-md text-label-md hover:bg-primary hover:text-on-primary transition-colors"
+                className="absolute right-2 sm:right-md top-1/2 -translate-y-1/2 px-sm sm:px-md py-sm bg-primary-container text-on-primary-container rounded font-label-md text-xs sm:text-label-md hover:bg-primary hover:text-on-primary transition-colors min-h-[36px]"
                 onClick={() => handleScan(scanCode)}
               >
                 חפש
@@ -251,7 +291,7 @@ export default function POSPage() {
           </div>
 
           {readyRepairs.length > 0 && (
-            <div className="px-lg pt-md">
+            <div className="px-3 md:px-lg pt-md">
               <h3 className="font-title-sm text-title-sm mb-sm text-secondary flex items-center gap-xs">
                 <Icon name="build" className="text-[18px]" />
                 תיקונים מוכנים לאיסוף
@@ -264,7 +304,7 @@ export default function POSPage() {
                       key={repair.id}
                       type="button"
                       disabled={inCart}
-                      className="flex flex-col items-start p-sm bg-surface border border-outline-variant rounded-lg hover:border-primary transition-all min-w-[160px] disabled:opacity-50"
+                      className="flex flex-col items-start p-sm bg-surface border border-outline-variant rounded-lg hover:border-primary transition-all min-w-0 flex-1 basis-[calc(50%-0.25rem)] sm:min-w-[160px] sm:flex-none sm:basis-auto disabled:opacity-50"
                       onClick={() => addRepairToCart(repair)}
                     >
                       <span className="font-label-md text-on-surface">{repair.deviceModel}</span>
@@ -277,7 +317,7 @@ export default function POSPage() {
             </div>
           )}
 
-          <div className="px-lg pt-md">
+          <div className="px-3 md:px-lg pt-md">
             <h3 className="font-title-sm text-title-sm mb-sm text-secondary">הוספה מהירה</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-sm">
               {quickProducts.map((p) => (
@@ -299,8 +339,8 @@ export default function POSPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-lg py-md">
-            <table className="w-full text-left border-collapse">
+          <div className="flex-1 overflow-y-auto px-3 md:px-lg py-md min-h-[120px] max-h-[42vh] lg:max-h-none table-scroll">
+            <table className="w-full text-left border-collapse min-w-[320px]">
               <thead className="font-label-md text-label-md text-secondary border-b-2 border-outline-variant sticky top-0 bg-surface-container-low z-10">
                 <tr>
                   <th className="pb-sm font-normal">פריט</th>
@@ -366,7 +406,7 @@ export default function POSPage() {
             </table>
           </div>
 
-          <div className="bg-surface p-lg border-t border-outline-variant">
+          <div className="bg-surface p-3 md:p-lg border-t border-outline-variant shrink-0">
             <div className="flex justify-between items-center mb-sm font-body-md text-secondary">
               <span>סכום ביניים</span>
               <span className="font-data-mono">{formatCurrency(totals.subtotal)}</span>
@@ -388,14 +428,14 @@ export default function POSPage() {
               <Icon name="receipt_long" />
               {processing ? 'מעבד...' : 'סיום והדפסת קבלה'}
             </button>
-            <p className="text-center text-secondary font-body-sm mt-sm">
+            <p className="hidden sm:block text-center text-secondary font-body-sm mt-sm">
               מדפסת BIXOLON SRP-330 (80mm)
             </p>
           </div>
         </section>
 
-        <aside className="w-full lg:w-[400px] flex flex-col gap-gutter">
-          <div className="bg-surface rounded-xl border border-outline-variant p-lg shadow-sm">
+        <aside className="w-full lg:w-[400px] flex flex-col gap-gutter shrink-0">
+          <div className="bg-surface rounded-xl border border-outline-variant p-3 md:p-lg shadow-sm">
             <div className="flex justify-between items-center mb-md">
               <h3 className="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
                 <Icon name="person_search" className="text-primary" />
@@ -450,7 +490,7 @@ export default function POSPage() {
             )}
           </div>
 
-          <div className="bg-surface rounded-xl border border-outline-variant shadow-sm flex-1 flex flex-col overflow-hidden">
+          <div className="bg-surface rounded-xl border border-outline-variant shadow-sm flex flex-col overflow-hidden max-h-[240px] lg:max-h-none lg:flex-1">
             <div className="p-lg border-b border-outline-variant bg-surface-container-lowest">
               <h3 className="font-title-sm text-title-sm text-on-surface flex items-center gap-sm">
                 <Icon name="history" className="text-secondary" />

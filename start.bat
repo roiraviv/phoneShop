@@ -2,116 +2,50 @@
 setlocal EnableDelayedExpansion
 
 cd /d "%~dp0"
-title PhoneStore Pro
+title PhoneShop
 
-echo.
-echo ============================================
-echo   PhoneStore Pro
-echo ============================================
-echo.
-
-echo [1/3] Checking Node.js and npm...
+cls
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\show-banner.ps1"
 
 where node >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo.
-    echo [ERROR] Node.js is not installed.
-    echo         Download from: https://nodejs.org
-    echo.
+if errorlevel 1 (
+    echo [ERROR] Node.js is not installed. https://nodejs.org
     pause
     exit /b 1
 )
 
 where npm >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo.
+if errorlevel 1 (
     echo [ERROR] npm not found. Reinstall Node.js.
-    echo.
     pause
     exit /b 1
 )
-
-for /f "tokens=*" %%v in ('node -v') do set NODE_VER=%%v
-for /f "tokens=*" %%v in ('npm -v')  do set NPM_VER=%%v
-echo        Node.js %NODE_VER%  ^|  npm %NPM_VER%
-echo        [OK] Node.js and npm installed
-echo.
-
-echo [2/3] Checking dependencies...
 
 if not exist "package.json" (
-    echo [ERROR] package.json not found. Run from project folder.
+    echo [ERROR] package.json not found.
     pause
     exit /b 1
 )
 
-if not exist "node_modules\" (
-    echo        Installing packages...
-    call npm install
-    if !ERRORLEVEL! neq 0 (
-        echo [ERROR] npm install failed.
-        pause
-        exit /b 1
-    )
-    echo        [OK] Packages installed
-) else (
-    echo        [OK] Syncing dependencies...
-    call npm install
-    if !ERRORLEVEL! neq 0 (
-        echo [ERROR] npm install failed.
-        pause
-        exit /b 1
-    )
+call npm install >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] npm install failed.
+    pause
+    exit /b 1
 )
-
-echo        Checking for updates...
-call npm outdated >nul 2>&1
-if %ERRORLEVEL% equ 1 (
-    echo        Updates found - updating...
-    call npm update
-    call npm install
-    if !ERRORLEVEL! neq 0 (
-        echo        [WARN] Some updates failed - continuing...
-    ) else (
-        echo        [OK] Packages updated
-    )
-) else (
-    echo        [OK] No updates required
-)
-echo.
-
-echo [3/3] Starting the app...
 
 netstat -ano | findstr ":5173.*LISTENING" >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo        [OK] Server already running on port 5173
-    goto OpenBrowser
-)
+if not errorlevel 1 goto ServerReady
 
-echo        Starting server in a new window...
-start "PhoneStore Server" cmd /k cd /d "%~dp0" ^&^& npm run dev:all
+set START_QUIET=1
+start /B /D "%~dp0" cmd /c "set START_QUIET=1&& npm run dev:all >nul 2>&1"
 
-echo        Waiting for server...
 call :WaitForPort5173
-set WAIT_RC=!ERRORLEVEL!
-if !WAIT_RC! neq 0 (
-    echo        [WARN] Server still starting - opening browser anyway...
-    ping 127.0.0.1 -n 4 >nul
-) else (
-    echo        [OK] Server ready
-)
+if errorlevel 1 timeout /t 3 /nobreak >nul
 
-:OpenBrowser
-echo        Opening browser: http://localhost:5173
+:ServerReady
 start "" "http://localhost:5173"
-
-echo.
-echo ============================================
-echo   App started successfully!
-echo   URL: http://localhost:5173
-echo   To stop: close the PhoneStore Server window
-echo ============================================
-echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\show-online.ps1"
 pause
 exit /b 0
 

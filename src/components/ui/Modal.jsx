@@ -12,7 +12,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
         aria-label="סגור"
       />
       <div
-        className={`relative bg-surface-container-lowest rounded-t-2xl md:rounded-xl border border-outline-variant shadow-[0px_4px_12px_rgba(0,0,0,0.1)] w-full ${wide ? 'md:max-w-2xl' : 'md:max-w-lg'} max-h-[92dvh] md:max-h-[90vh] overflow-y-auto`}
+        className={`relative bg-surface-container-lowest rounded-t-2xl md:rounded-xl border border-outline-variant shadow-[0px_4px_12px_rgba(0,0,0,0.1)] w-full ${wide ? 'md:max-w-2xl' : 'md:max-w-lg'} max-h-[92dvh] md:max-h-[90vh] overflow-y-auto pb-[env(safe-area-inset-bottom,0px)]`}
       >
         <div className="md:hidden flex justify-center pt-2 pb-1">
           <div className="w-10 h-1 rounded-full bg-outline-variant/60" aria-hidden />

@@ -8,9 +8,11 @@ async function startServer() {
   await initStorage();
 
   const server = app.listen(PORT, () => {
-    console.log(`🚀 שרת פועל על http://localhost:${PORT}`);
-    console.log(`📊 דשבורד: http://localhost:${PORT}/api/analytics/dashboard`);
-    console.log(`🛒 POS:      http://localhost:${PORT}/api/sales`);
+    if (!process.env.START_QUIET) {
+      console.log(`🚀 שרת פועל על http://localhost:${PORT}`);
+      console.log(`📊 דשבורד: http://localhost:${PORT}/api/analytics/dashboard`);
+      console.log(`🛒 POS:      http://localhost:${PORT}/api/sales`);
+    }
   });
 
   server.on('error', (err) => {

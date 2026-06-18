@@ -27,7 +27,9 @@ function NavItem({ path, icon, label, end }) {
 export default function MobileBottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
-  const moreActive = MOBILE_MORE_NAV.some((item) => item.path === location.pathname);
+  const moreActive =
+    MOBILE_MORE_NAV.some((item) => item.path === location.pathname) ||
+    location.pathname.startsWith('/reports');
 
   return (
     <>
@@ -53,8 +55,10 @@ export default function MobileBottomNav() {
                     to={path}
                     onClick={() => setMoreOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                        isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-on-surface hover:bg-surface-container-low'
+                      `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors min-h-[44px] ${
+                        isActive || (path === '/reports' && location.pathname.startsWith('/reports'))
+                          ? 'bg-primary/10 text-primary font-semibold'
+                          : 'text-on-surface hover:bg-surface-container-low'
                       }`
                     }
                   >

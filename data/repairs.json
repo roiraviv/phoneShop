@@ -67,12 +67,13 @@
     "laborCharge": 40,
     "finalCustomerPrice": 85,
     "profit": 60,
-    "status": "ממתין לחלקים",
+    "status": "תוקן",
     "priority": "low",
     "partNote": "חלק: כבל USB-C Flex (מקורי)",
     "receivedAt": "2025-06-12T09:00:00.000Z",
     "createdAt": "2025-06-12T09:00:00.000Z",
-    "updatedAt": "2025-06-12T09:00:00.000Z"
+    "updatedAt": "2026-06-18T17:01:49.519Z",
+    "completedAt": "2026-06-18T17:01:49.519Z"
   },
   {
     "id": "rep-004",
@@ -89,11 +90,12 @@
     "laborCharge": 60,
     "finalCustomerPrice": 125,
     "profit": 95,
-    "status": "בעבודה",
+    "status": "תוקן",
     "priority": "high",
     "receivedAt": "2025-06-13T11:00:00.000Z",
     "createdAt": "2025-06-13T11:00:00.000Z",
-    "updatedAt": "2025-06-13T11:00:00.000Z"
+    "updatedAt": "2026-06-18T17:01:47.453Z",
+    "completedAt": "2026-06-18T16:58:08.273Z"
   },
   {
     "id": "rep-005",
@@ -146,5 +148,31 @@
     "issueDescription": "??? ????",
     "createdAt": "2026-06-15T09:46:33.830Z",
     "updatedAt": "2026-06-15T09:46:33.830Z"
+  },
+  {
+    "id": "ac1508aa-99d7-4998-9203-def2aa460ca3",
+    "ticketNumber": "REP-00007",
+    "status": "בעבודה",
+    "receivedAt": "2026-06-18T17:00:12.506Z",
+    "laborCharge": 0,
+    "partCost": 70,
+    "finalCustomerPrice": 1000,
+    "profit": 930,
+    "priority": "high",
+    "imei": "NVM",
+    "serialNumber": "NVM",
+    "devicePassword": "357956",
+    "screenLockType": "pin",
+    "simPin": "",
+    "deviceCondition": "תקין לגמרי ללא פגע חוץ מהגב",
+    "accessoriesIncluded": [],
+    "dueDate": "2026-06-19T20:00:00.000Z",
+    "partNote": "",
+    "technicianNotes": "",
+    "customer": "bef4830f-895b-4596-b763-7bdc6cc90f50",
+    "deviceModel": "iPhone 15 Pro",
+    "issueDescription": "נשבר הגב",
+    "createdAt": "2026-06-18T17:00:12.506Z",
+    "updatedAt": "2026-06-18T17:00:19.937Z"
   }
 ]
